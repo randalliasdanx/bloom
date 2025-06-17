@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Teacher {
+  id        String     @id @default(uuid())
+  name      String
+  username  String     @unique
+  subjects  Subject[]  // One-to-many: a teacher teaches many subjects
+  students  Student[]  
+  imageUrl  String?
+}
+
+model Student {
+  id           String        @id @default(uuid())
+  name         String
+  username     String        @unique
+  preferences  Json?
+  enrollments  Enrollment[]  // Many-to-many via Enrollment
+  teachers  Teacher[] 
+  imageUrl  String?
+}
+
+model Subject {
+  id          String        @id @default(uuid())
+  name        String
+  teacherId   String
+  teacher     Teacher       @relation(fields: [teacherId], references: [id])
+  materials   Material[]
+  enrollments Enrollment[]  // Many-to-many via Enrollment
+}
+
+model Material {
+  id         String   @id @default(uuid())
+  title      String
+  contentUrl String
+  subjectId  String
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+}
+
+model Enrollment {
+  id         String   @id @default(uuid())
+  studentId  String
+  subjectId  String
+  progress   Int?
+  student    Student  @relation(fields: [studentId], references: [id])
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentId, subjectId]) // No duplicate enrollments
+}
