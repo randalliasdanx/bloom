@@ -8,7 +8,7 @@ import mermaid from "mermaid";
 // Mock data for modules, chapters, and lessons
 const mockModules = [
   {
-    id: "mod1",
+    id: "algorithms",
     title: "Algorithms",
     chapters: [
       {
@@ -23,6 +23,49 @@ const mockModules = [
       },
     ],
     progress: 0.3,
+  },
+  {
+    id: "linear-algebra",
+    title: "Linear Algebra",
+    chapters: [
+      {
+        id: "ch1",
+        title: "Vectors",
+        lessons: ["Vector Addition", "Dot Product", "Cross Product"],
+      },
+      {
+        id: "ch2",
+        title: "Matrices",
+        lessons: ["Matrix Multiplication", "Determinants", "Inverses"],
+      },
+    ],
+    progress: 0.5,
+  },
+  {
+    id: "calculus",
+    title: "Calculus",
+    chapters: [
+      {
+        id: "ch1",
+        title: "Limits & Continuity",
+        lessons: ["Limits", "Continuity"],
+      },
+      {
+        id: "ch2",
+        title: "Derivatives",
+        lessons: ["Definition of Derivative", "Product Rule", "Chain Rule"],
+      },
+      {
+        id: "ch3",
+        title: "Integrals",
+        lessons: [
+          "Definite Integrals",
+          "Indefinite Integrals",
+          "Fundamental Theorem",
+        ],
+      },
+    ],
+    progress: 0.2,
   },
 ];
 
@@ -47,9 +90,10 @@ const Dashboard: React.FC = () => {
           return `${chapterNode}\n${lessonNodes}\n${lessonLinks}`;
         })
         .join("\n");
-    mermaid.render("roadmap", roadmap, (svgCode: string) =>
-      setMermaidSvg(svgCode)
-    );
+    (async () => {
+      const { svg } = await mermaid.render("roadmap", roadmap);
+      setMermaidSvg(svg);
+    })();
   }, [selectedModule]);
 
   const handleSignOut = async () => {
@@ -60,34 +104,34 @@ const Dashboard: React.FC = () => {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="w-64 bg-blue-900 text-white flex flex-col items-center py-8">
-        <div className="mb-8 text-2xl font-bold">YourLogo</div>
+      <aside className="w-64 bg-[#d4f5e9] text-black flex flex-col items-center py-8">
         <div className="w-full">
-          <h3 className="mb-2 px-4">Modules</h3>
+          <h3 className="mb-2 px-4 font-bold">Modules</h3>
           <ul>
             {mockModules.map((mod) => (
               <li
                 key={mod.id}
                 className={`px-4 py-2 cursor-pointer ${
-                  selectedModule.id === mod.id ? "bg-blue-700" : ""
+                  selectedModule.id === mod.id ? "bg-[#b7eacb]" : ""
                 }`}
+                style={{ fontWeight: selectedModule.id === mod.id ? 500 : 400 }}
                 onClick={() => setSelectedModule(mod)}
               >
-                {mod.title}
+                <span className="font-normal">{mod.title}</span>
               </li>
             ))}
           </ul>
         </div>
         <button
           onClick={handleSignOut}
-          className="mt-auto mb-4 bg-red-600 px-4 py-2 rounded"
+          className="mt-auto mb-4 bg-green-200 text-black px-4 py-2 rounded shadow hover:bg-green-300 transition"
         >
           Sign Out
         </button>
       </aside>
       {/* Main Content */}
-      <main className="flex-1 p-8 bg-gray-50">
-        <h1 className="text-3xl font-bold mb-4">
+      <main className="flex-1 p-8 bg-transparent">
+        <h1 className="text-3xl font-bold mb-4" style={{ color: "black" }}>
           {selectedModule.title} Roadmap
         </h1>
         <div className="mb-4">
@@ -97,7 +141,7 @@ const Dashboard: React.FC = () => {
               style={{ width: `${selectedModule.progress * 100}%` }}
             ></div>
           </div>
-          <div className="text-right text-sm mt-1">
+          <div className="text-right text-sm mt-1" style={{ color: "black" }}>
             {Math.round(selectedModule.progress * 100)}% complete
           </div>
         </div>
@@ -107,12 +151,18 @@ const Dashboard: React.FC = () => {
           className="mb-8"
         />
         <div>
-          <h2 className="text-xl font-semibold mb-2">Chapters & Lessons</h2>
+          <h2 className="text-xl font-bold mb-2" style={{ color: "black" }}>
+            Chapters & Lessons
+          </h2>
           <ul>
             {selectedModule.chapters.map((ch) => (
               <li key={ch.id} className="mb-2">
-                <span className="font-bold">{ch.title}:</span>{" "}
-                {ch.lessons.join(", ")}
+                <span className="font-bold" style={{ color: "black" }}>
+                  {ch.title}:
+                </span>{" "}
+                <span className="font-normal" style={{ color: "black" }}>
+                  {ch.lessons.join(", ")}
+                </span>
               </li>
             ))}
           </ul>

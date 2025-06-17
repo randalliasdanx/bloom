@@ -26,18 +26,20 @@ const SignIn: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+    <div className="flex flex-col items-center justify-center min-h-screen">
       <form
         onSubmit={handleSignIn}
-        className="bg-white p-8 rounded shadow-md w-96"
+        className="bg-white/80 p-8 rounded shadow-md w-96"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Sign In</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center bloom-green">
+          Sign In
+        </h2>
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full mb-4 p-2 border rounded"
+          className="w-full mb-4 p-2 border bloom-green rounded"
           required
         />
         <input
@@ -45,13 +47,13 @@ const SignIn: React.FC = () => {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-4 p-2 border rounded"
+          className="w-full mb-4 p-2 border bloom-green rounded"
           required
         />
         {error && <div className="text-red-500 mb-4">{error}</div>}
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+          className="w-full bloom-green py-2 rounded font-semibold border bg-green-50 border-green-300 hover:bg-green-100 transition"
           disabled={loading}
         >
           {loading ? "Signing In..." : "Sign In"}

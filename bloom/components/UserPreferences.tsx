@@ -14,7 +14,6 @@ const UserPreferences: React.FC = () => {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     learning_style: "",
-    interests: "",
     level: "",
     mastery_goal: "",
     class_type: "",
@@ -32,11 +31,10 @@ const UserPreferences: React.FC = () => {
     setError(null);
     if (step === 0 && !form.learning_style)
       setError("Select a learning style.");
-    else if (step === 1 && !form.interests) setError("Enter your interests.");
-    else if (step === 2 && !form.level) setError("Select your level.");
-    else if (step === 3 && !form.mastery_goal)
+    else if (step === 1 && !form.level) setError("Select your level.");
+    else if (step === 2 && !form.mastery_goal)
       setError("Select your mastery goal.");
-    else if (step === 4 && !form.class_type) setError("Select a class type.");
+    else if (step === 3 && !form.class_type) setError("Select a class type.");
     else setStep(step + 1);
   };
 
@@ -64,9 +62,9 @@ const UserPreferences: React.FC = () => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded shadow-md w-96"
+        className="bg-white/80 p-8 rounded shadow-md w-96"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">
+        <h2 className="text-2xl font-bold mb-6 text-center bloom-green">
           User Preferences
         </h2>
         {step === 0 && (
@@ -89,18 +87,6 @@ const UserPreferences: React.FC = () => {
         )}
         {step === 1 && (
           <div>
-            <label className="block mb-2">Subjects/Interests</label>
-            <input
-              name="interests"
-              value={form.interests}
-              onChange={handleChange}
-              className="w-full mb-4 p-2 border rounded"
-              placeholder="e.g. Math, Science, Art"
-            />
-          </div>
-        )}
-        {step === 2 && (
-          <div>
             <label className="block mb-2">Current Level</label>
             <select
               name="level"
@@ -117,7 +103,7 @@ const UserPreferences: React.FC = () => {
             </select>
           </div>
         )}
-        {step === 3 && (
+        {step === 2 && (
           <div>
             <label className="block mb-2">Aspired Mastery Level</label>
             <select
@@ -135,7 +121,7 @@ const UserPreferences: React.FC = () => {
             </select>
           </div>
         )}
-        {step === 4 && (
+        {step === 3 && (
           <div>
             <label className="block mb-2">Class Type</label>
             <select
@@ -159,24 +145,26 @@ const UserPreferences: React.FC = () => {
             <button
               type="button"
               onClick={handleBack}
-              className="bg-gray-300 px-4 py-2 rounded"
+              className="bg-lime-300 px-4 py-2 rounded"
             >
               Back
             </button>
           )}
-          {step < 4 && (
+          {step < 3 && (
             <button
               type="button"
               onClick={handleNext}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
+              className="bloom-green text-white px-4 py-2 rounded"
+              style={{ backgroundColor: "#3cb371" }}
             >
               Next
             </button>
           )}
-          {step === 4 && (
+          {step === 3 && (
             <button
               type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded"
+              className="bloom-green text-white px-4 py-2 rounded"
+              style={{ backgroundColor: "#3cb371" }}
               disabled={loading}
             >
               {loading ? "Saving..." : "Submit"}

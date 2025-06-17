@@ -1,0 +1,95 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Student {
+    id              String            @id @default(uuid())
+    email           String            @unique
+    name            String
+    password        String
+    learningStyle   String
+    progress        Json
+    subjects        StudentSubject[]
+    teacherId       String?
+    teacher         Teacher?          @relation(fields: [teacherId], references: [id])
+    createdAt       DateTime          @default(now())
+    progressRecords StudentProgress[]
+}
+
+model StudentSubject {
+    id        String  @id @default(uuid())
+    name      String
+    student   Student @relation(fields: [studentId], references: [id])
+    studentId String
+}
+
+model Teacher {
+    id        String           @id @default(uuid())
+    email     String           @unique
+    name      String
+    password  String
+    subjects  TeacherSubject[]
+    students  Student[]
+    modules   Module[]
+    createdAt DateTime         @default(now())
+}
+
+model TeacherSubject {
+    id        String  @id @default(uuid())
+    name      String
+    teacher   Teacher @relation(fields: [teacherId], references: [id])
+    teacherId String
+}
+
+model Module {
+    id         String    @id @default(uuid())
+    title      String
+    teacherId  String
+    teacher    Teacher   @relation(fields: [teacherId], references: [id])
+    curriculum Json
+    chapters   Chapter[]
+    lessons    Lesson[] // optional flat access if needed
+}
+
+model Chapter {
+    id        String   @id @default(uuid())
+    title     String
+    moduleId  String
+    module    Module   @relation(fields: [moduleId], references: [id])
+    lessons   Lesson[]
+    createdAt DateTime @default(now())
+}
+
+model Lesson {
+    id              String            @id @default(uuid())
+    title           String
+    content         String
+    moduleId        String? // Optional: for legacy support or direct access
+    module          Module?           @relation(fields: [moduleId], references: [id])
+    chapterId       String? // Each lesson can belong to a chapter
+    chapter         Chapter?          @relation(fields: [chapterId], references: [id])
+    quizzes         Quiz[]
+    progressRecords StudentProgress[]
+}
+
+model Quiz {
+    id        String @id @default(uuid())
+    lessonId  String
+    lesson    Lesson @relation(fields: [lessonId], references: [id])
+    questions Json // Structure: [{question: "...", answer: "..."}]
+}
+
+model StudentProgress {
+    id        String  @id @default(uuid())
+    studentId String
+    student   Student @relation(fields: [studentId], references: [id])
+    lessonId  String
+    lesson    Lesson  @relation(fields: [lessonId], references: [id])
+    status    String // e.g. "not_started", "in_progress", "completed"
+    score     Int? // Optional quiz score
+}

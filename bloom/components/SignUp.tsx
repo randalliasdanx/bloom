@@ -31,12 +31,14 @@ const SignUp: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+    <div className="flex flex-col items-center justify-center min-h-screen">
       <form
         onSubmit={handleSignUp}
-        className="bg-white p-8 rounded shadow-md w-96"
+        className="bg-white/80 p-8 rounded shadow-md w-96"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center bloom-green">
+          Sign Up
+        </h2>
         <input
           type="email"
           placeholder="Email"
@@ -64,7 +66,7 @@ const SignUp: React.FC = () => {
         {error && <div className="text-red-500 mb-4">{error}</div>}
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+          className="w-full bloom-green py-2 rounded font-semibold border border-green-300 hover:bg-green-100 transition"
           disabled={loading}
         >
           {loading ? "Signing Up..." : "Sign Up"}
