@@ -47,13 +47,14 @@ model TeacherSubject {
 }
 
 model Module {
-    id         String    @id @default(uuid())
-    title      String
-    teacherId  String
-    teacher    Teacher   @relation(fields: [teacherId], references: [id])
-    curriculum Json
-    chapters   Chapter[]
-    lessons    Lesson[] // optional flat access if needed
+    id                String    @id @default(uuid())
+    title             String
+    teacherId         String
+    teacher           Teacher   @relation(fields: [teacherId], references: [id])
+    curriculum        Json
+    textbookOrSubject String
+    chapters          Chapter[]
+    lessons           Lesson[] // optional flat access if needed
 }
 
 model Chapter {
