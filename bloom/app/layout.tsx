@@ -3,6 +3,13 @@ import type { Metadata } from "next";
 import { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Roboto } from "next/font/google";
+
+const roboto = Roboto({
+  weight: ["400", "500", "700"],
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "bloom",
@@ -32,7 +39,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }
         `}</style>
       </head>
-      <body className="min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]">
+      <body
+        className={`${roboto.className} min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]`}
+      >
         <header className="w-full flex items-center h-20 px-8 py-2 bg-fuchsia-50/95 backdrop-blur-md shadow-sm">
           <Link href="/" className="flex items-center">
             <Image

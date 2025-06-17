@@ -37,6 +37,10 @@ export default function TeacherUploadPage() {
     index: number;
   } | null>(null);
   const [editedChapterContent, setEditedChapterContent] = useState("");
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [currentChapterIndexMap, setCurrentChapterIndexMap] = useState<
+    Record<string, number>
+  >({});
 
   const router = useRouter();
 
@@ -59,6 +63,13 @@ export default function TeacherUploadPage() {
   }, [curriculumGenerated]);
 
   const selected = modules.find((m) => m.id === selectedId);
+  const currentChapterIndex = selectedId
+    ? currentChapterIndexMap[selectedId] ?? 0
+    : 0;
+  const setCurrentChapterIndex = (idx: number) => {
+    if (!selectedId) return;
+    setCurrentChapterIndexMap((prev) => ({ ...prev, [selectedId]: idx }));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -111,7 +122,19 @@ export default function TeacherUploadPage() {
 
   const handleSubmit = async () => {
     if (!pdfFile && !useExtractedText) {
-      setMessage("Please select a PDF or extract text first.");
+      setExtractError("Please extract text from PDF first");
+      return;
+    }
+
+    if (!useExtractedText) {
+      setExtractError("Please extract text from PDF first");
+      return;
+    }
+
+    if (!extractedText.trim()) {
+      setExtractError(
+        "No text content available. Please extract text from PDF first."
+      );
       return;
     }
 
@@ -119,6 +142,7 @@ export default function TeacherUploadPage() {
     setMessage("Processing...");
     setProgress(0);
     setCurriculumGenerated(false);
+    setExtractError(null);
 
     try {
       let body:
@@ -443,7 +467,7 @@ export default function TeacherUploadPage() {
     <div className="flex min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]">
       {/* Sidebar */}
       <aside className="w-64 bg-white/80 border-r border-green-200 p-4">
-        <h2 className="text-lg font-bold mb-4 text-green-700">
+        <h2 className="text-xl font-bold mb-4 text-green-700 tracking-wide">
           Your Curriculums
         </h2>
         {Object.entries(grouped).map(([textbook, mods]) => (
@@ -453,34 +477,49 @@ export default function TeacherUploadPage() {
                 onClick={() =>
                   setOpenTextbook(openTextbook === textbook ? null : textbook)
                 }
-                className="font-bold w-full text-left mb-1 px-2 py-1 rounded"
+                className="font-semibold w-full text-left mb-1 px-2 py-1 rounded tracking-wide"
                 style={{ color: "black" }}
               >
                 {textbook}
               </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteConfirmId(textbook);
-                  setDeleteConfirmType("subject");
-                }}
-                className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 px-2"
-                title="Delete entire subject"
-              >
-                🗑️
-              </button>
-              {deleteConfirmId === textbook &&
-                deleteConfirmType === "subject" && (
-                  <ConfirmationDialog
-                    type="subject"
-                    id={textbook}
-                    onConfirm={() => handleDeleteSubject(textbook)}
-                    onCancel={() => {
-                      setDeleteConfirmId(null);
-                      setDeleteConfirmType(null);
-                    }}
-                  />
-                )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    router.push(
+                      `/teacher-upload/subject-roadmap/${encodeURIComponent(
+                        textbook
+                      )}`
+                    )
+                  }
+                  className="opacity-0 group-hover:opacity-100 text-blue-600 hover:text-blue-800 px-2"
+                  title="View/Edit Roadmap"
+                >
+                  🗺️
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteConfirmId(textbook);
+                    setDeleteConfirmType("subject");
+                  }}
+                  className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 px-2"
+                  title="Delete entire subject"
+                >
+                  🗑️
+                </button>
+                {deleteConfirmId === textbook &&
+                  deleteConfirmType === "subject" && (
+                    <ConfirmationDialog
+                      type="subject"
+                      id={textbook}
+                      onConfirm={() => handleDeleteSubject(textbook)}
+                      onCancel={() => {
+                        setDeleteConfirmId(null);
+                        setDeleteConfirmType(null);
+                      }}
+                    />
+                  )}
+              </div>
             </div>
             {openTextbook === textbook && (
               <ul>
@@ -491,14 +530,20 @@ export default function TeacherUploadPage() {
                   >
                     <button
                       className={`w-full text-left px-2 py-1 rounded mb-1 ${
-                        selectedId === mod.id
+                        selectedId === mod.id && currentChapterIndex === 0
+                          ? "bg-green-400 font-bold"
+                          : selectedId === mod.id
                           ? "bg-green-200 font-bold"
                           : "hover:bg-green-100"
                       }`}
                       style={{ color: "black" }}
-                      onClick={() =>
-                        setSelectedId(selectedId === mod.id ? null : mod.id)
-                      }
+                      onClick={() => {
+                        setSelectedId(mod.id);
+                        setCurrentChapterIndexMap((prev) => ({
+                          ...prev,
+                          [mod.id]: 0,
+                        }));
+                      }}
                     >
                       {mod.title}
                     </button>
@@ -535,13 +580,13 @@ export default function TeacherUploadPage() {
       {/* Main content */}
       <main className="flex-1 p-8">
         <div className="max-w-2xl mx-auto p-8">
-          <h1 className="text-3xl font-bold mb-6">
+          <h1 className="text-4xl font-bold mb-6 tracking-wide">
             <span style={{ color: "black" }}>Teacher Curriculum Builder</span>
           </h1>
 
           <div className="mb-6">
             <label
-              className="block mb-2 font-semibold"
+              className="block mb-2 font-semibold text-lg tracking-wide"
               style={{ color: "black" }}
             >
               Attach a Textbook PDF
@@ -576,7 +621,7 @@ export default function TeacherUploadPage() {
           {useExtractedText && (
             <div className="mb-6">
               <label
-                className="block mb-2 font-semibold"
+                className="block mb-2 font-semibold text-lg tracking-wide"
                 style={{ color: "black" }}
               >
                 Extracted Text Preview
@@ -593,6 +638,10 @@ export default function TeacherUploadPage() {
             </div>
           )}
 
+          {extractError && (
+            <div className="text-red-600 font-medium mb-4">{extractError}</div>
+          )}
+
           {progress > 0 && loading && (
             <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
               <div
@@ -604,7 +653,7 @@ export default function TeacherUploadPage() {
 
           <div className="mb-6">
             <label
-              className="block mb-2 font-semibold"
+              className="block mb-2 font-semibold text-lg tracking-wide"
               style={{ color: "black" }}
             >
               Textbook or Subject Name
@@ -632,12 +681,14 @@ export default function TeacherUploadPage() {
               (useExtractedText && extractedText.trim().length === 0) ||
               !textbookOrSubject.trim()
             }
-            className="bg-green-700 text-black px-6 py-2 rounded font-semibold hover:bg-green-800 transition mr-2"
+            className="bg-green-700 text-black px-6 py-2 rounded font-semibold hover:bg-green-800 transition mr-2 tracking-wide text-lg"
           >
             {loading ? "Processing..." : "Generate Curriculum"}
           </button>
 
-          {message && <div className="mt-4 text-green-700">{message}</div>}
+          {message && (
+            <div className="mt-4 text-green-700 font-medium">{message}</div>
+          )}
         </div>
         {/* Curriculum display */}
         {selectedId && selected ? (
@@ -670,9 +721,21 @@ export default function TeacherUploadPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-green-700">
+                  <h1 className="text-3xl font-bold text-green-700 tracking-wide">
                     {selected.title}
                   </h1>
+                  <button
+                    onClick={() =>
+                      setCurrentChapterIndex(
+                        Math.max(0, currentChapterIndex - 1)
+                      )
+                    }
+                    className="text-gray-600 hover:text-gray-800 mr-2"
+                    title="Previous chapter"
+                    disabled={currentChapterIndex === 0}
+                  >
+                    ←
+                  </button>
                   <button
                     onClick={() => {
                       setEditingTitle(selected.id);
@@ -698,141 +761,224 @@ export default function TeacherUploadPage() {
                   >
                     🗑️
                   </button>
+                  <button
+                    onClick={() =>
+                      setCurrentChapterIndex(
+                        Math.min(
+                          (selected.curriculum.chapters?.length || 1) - 1,
+                          currentChapterIndex + 1
+                        )
+                      )
+                    }
+                    className="text-gray-600 hover:text-gray-800 ml-2"
+                    title="Next chapter"
+                    disabled={
+                      currentChapterIndex ===
+                      (selected.curriculum.chapters?.length || 1) - 1
+                    }
+                  >
+                    →
+                  </button>
                 </div>
               )}
             </div>
-            {selected.curriculum.chapters?.map((chapter, idx) => (
-              <div
-                key={idx}
-                className="mb-6 border rounded-lg p-4 bg-white/50 relative"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xl font-bold" style={{ color: "black" }}>
-                    {chapter.title}
-                  </h2>
-                  <div className="flex items-center gap-2">
+            {selected.curriculum.chapters &&
+              selected.curriculum.chapters.length > 0 && (
+                <div
+                  key={currentChapterIndex}
+                  className="mb-6 border rounded-lg p-4 bg-white/50 relative"
+                >
+                  <div className="flex items-center justify-between mb-2">
                     <button
-                      onClick={() => {
-                        setEditingChapter({ id: selected.id, index: idx });
-                        setEditedChapterContent(chapter.content);
-                      }}
-                      className="text-gray-600 hover:text-gray-800"
-                      title="Edit chapter content"
+                      onClick={() =>
+                        setCurrentChapterIndex(
+                          Math.max(0, currentChapterIndex - 1)
+                        )
+                      }
+                      className="text-gray-600 hover:text-gray-800 mr-2"
+                      title="Previous chapter"
+                      disabled={currentChapterIndex === 0}
                     >
-                      ✏️
+                      ←
                     </button>
-                    <button
-                      onClick={() => {
-                        setDeleteConfirmId(selected.id);
-                        setDeleteConfirmType("chapter");
-                        setDeleteConfirmIndex(idx);
-                      }}
-                      className="text-red-600 hover:text-red-800"
-                      title="Delete chapter"
+                    <h2
+                      className="text-2xl font-bold tracking-wide"
+                      style={{ color: "black" }}
                     >
-                      🗑️
-                    </button>
-                    {deleteConfirmId === selected.id &&
-                      deleteConfirmType === "chapter" &&
-                      deleteConfirmIndex === idx && (
-                        <ConfirmationDialog
-                          type="chapter"
-                          id={selected.id}
-                          index={idx}
-                          onConfirm={() =>
-                            handleDeleteChapter(selected.id, idx)
-                          }
-                          onCancel={() => {
-                            setDeleteConfirmId(null);
-                            setDeleteConfirmType(null);
-                            setDeleteConfirmIndex(null);
-                          }}
-                        />
-                      )}
-                  </div>
-                </div>
-                {editingChapter?.id === selected.id &&
-                editingChapter?.index === idx ? (
-                  <div className="mt-2">
-                    <textarea
-                      value={editedChapterContent}
-                      onChange={(e) => setEditedChapterContent(e.target.value)}
-                      className="w-full border rounded p-2 text-black min-h-[200px]"
-                    />
-                    <div className="flex gap-2 mt-2">
+                      {selected.curriculum.chapters[currentChapterIndex].title}
+                    </h2>
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() =>
-                          handleUpdateChapterContent(selected.id, idx)
-                        }
-                        className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                        onClick={() => {
+                          setEditingChapter({
+                            id: selected.id,
+                            index: currentChapterIndex,
+                          });
+                          setEditedChapterContent(
+                            selected.curriculum.chapters[currentChapterIndex]
+                              .content
+                          );
+                        }}
+                        className="text-gray-600 hover:text-gray-800"
+                        title="Edit chapter content"
                       >
-                        Save
+                        ✏️
                       </button>
                       <button
                         onClick={() => {
-                          setEditingChapter(null);
-                          setEditedChapterContent("");
+                          setDeleteConfirmId(selected.id);
+                          setDeleteConfirmType("chapter");
+                          setDeleteConfirmIndex(currentChapterIndex);
                         }}
-                        className="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete chapter"
                       >
-                        Cancel
+                        🗑️
                       </button>
+                      <button
+                        onClick={() =>
+                          setCurrentChapterIndex(
+                            Math.min(
+                              (selected.curriculum.chapters?.length || 1) - 1,
+                              currentChapterIndex + 1
+                            )
+                          )
+                        }
+                        className="text-gray-600 hover:text-gray-800 ml-2"
+                        title="Next chapter"
+                        disabled={
+                          currentChapterIndex ===
+                          (selected.curriculum.chapters?.length || 1) - 1
+                        }
+                      >
+                        →
+                      </button>
+                      {deleteConfirmId === selected.id &&
+                        deleteConfirmType === "chapter" &&
+                        deleteConfirmIndex === currentChapterIndex && (
+                          <ConfirmationDialog
+                            type="chapter"
+                            id={selected.id}
+                            index={currentChapterIndex}
+                            onConfirm={() =>
+                              handleDeleteChapter(
+                                selected.id,
+                                currentChapterIndex
+                              )
+                            }
+                            onCancel={() => {
+                              setDeleteConfirmId(null);
+                              setDeleteConfirmType(null);
+                              setDeleteConfirmIndex(null);
+                            }}
+                          />
+                        )}
                     </div>
                   </div>
-                ) : (
-                  <p className="mb-2" style={{ color: "black" }}>
-                    {chapter.content}
-                  </p>
-                )}
-                {chapter.lessons && (
-                  <div className="ml-4 mb-2">
-                    <h4 className="font-semibold" style={{ color: "black" }}>
-                      Lessons:
-                    </h4>
-                    <ul className="list-disc list-inside">
-                      {chapter.lessons.map((lesson: any, lidx: number) => (
-                        <li
-                          key={lidx}
-                          className="mb-1"
-                          style={{ color: "black" }}
+                  {editingChapter?.id === selected.id &&
+                  editingChapter?.index === currentChapterIndex ? (
+                    <div className="mt-2">
+                      <textarea
+                        value={editedChapterContent}
+                        onChange={(e) =>
+                          setEditedChapterContent(e.target.value)
+                        }
+                        className="w-full border rounded p-2 text-black min-h-[200px]"
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() =>
+                            handleUpdateChapterContent(
+                              selected.id,
+                              currentChapterIndex
+                            )
+                          }
+                          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
                         >
-                          <span className="font-medium">{lesson.title}:</span>{" "}
-                          {lesson.content}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {chapter.quiz && (
-                  <div className="ml-4">
-                    <h4 className="font-semibold" style={{ color: "black" }}>
-                      Quiz:
-                    </h4>
-                    <ul className="list-decimal list-inside">
-                      {chapter.quiz.map((q: any, qidx: number) => (
-                        <li
-                          key={qidx}
-                          className="mb-1"
-                          style={{ color: "black" }}
+                          Save
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingChapter(null);
+                            setEditedChapterContent("");
+                          }}
+                          className="bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
                         >
-                          <span className="font-medium">Q:</span> {q.question}
-                          <ul className="ml-4 list-disc">
-                            {q.options?.map((opt: string, oidx: number) => (
-                              <li key={oidx} style={{ color: "black" }}>
-                                {opt}
-                              </li>
-                            ))}
-                          </ul>
-                          <span className="text-green-700">
-                            Answer: {q.answer}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ))}
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p
+                      className="mb-2 text-lg leading-relaxed"
+                      style={{ color: "black" }}
+                    >
+                      {
+                        selected.curriculum.chapters[currentChapterIndex]
+                          .content
+                      }
+                    </p>
+                  )}
+                  {selected.curriculum.chapters[currentChapterIndex]
+                    .lessons && (
+                    <div className="ml-4 mb-2">
+                      <h4
+                        className="font-semibold text-lg tracking-wide"
+                        style={{ color: "black" }}
+                      >
+                        Lessons:
+                      </h4>
+                      <ul className="list-disc list-inside space-y-2">
+                        {selected.curriculum.chapters[
+                          currentChapterIndex
+                        ].lessons.map((lesson: any, lidx: number) => (
+                          <li
+                            key={lidx}
+                            className="mb-1 text-lg"
+                            style={{ color: "black" }}
+                          >
+                            <span className="font-medium">{lesson.title}:</span>{" "}
+                            {lesson.content}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {selected.curriculum.chapters[currentChapterIndex].quiz && (
+                    <div className="ml-4">
+                      <h4
+                        className="font-semibold text-lg tracking-wide"
+                        style={{ color: "black" }}
+                      >
+                        Quiz:
+                      </h4>
+                      <ul className="list-decimal list-inside space-y-4">
+                        {selected.curriculum.chapters[
+                          currentChapterIndex
+                        ].quiz.map((q: any, qidx: number) => (
+                          <li
+                            key={qidx}
+                            className="mb-1 text-lg"
+                            style={{ color: "black" }}
+                          >
+                            <span className="font-medium">Q:</span> {q.question}
+                            <ul className="ml-4 list-disc space-y-2 mt-2">
+                              {q.options?.map((opt: string, oidx: number) => (
+                                <li key={oidx} style={{ color: "black" }}>
+                                  {opt}
+                                </li>
+                              ))}
+                            </ul>
+                            <span className="text-green-700 font-medium mt-2 block">
+                              Answer: {q.answer}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
           </div>
         ) : null}
       </main>

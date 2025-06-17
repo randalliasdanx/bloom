@@ -134,7 +134,7 @@ ${chunk}
 `;
       try {
         const completion = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4",
           messages: [{ role: "user", content: prompt }],
           temperature: 0.2,
           max_tokens: 1500,
@@ -146,27 +146,9 @@ ${chunk}
         try {
           const jsonMatch = responseText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
-            try {
-              const curriculum: Curriculum = JSON.parse(jsonMatch[0]);
-              if (Array.isArray(curriculum.chapters) && curriculum.chapters.length > 0) {
-                chapters = curriculum.chapters;
-              }
-            } catch (e) {
-              // Try to repair common JSON issues
-              let fixed = jsonMatch[0]
-                .replace(/,\s*}/g, '}') // remove trailing commas before }
-                .replace(/,\s*]/g, ']'); // remove trailing commas before ]
-              // Ensure closing bracket
-              if (fixed[fixed.length - 1] !== '}') fixed += '}';
-              try {
-                const curriculum: Curriculum = JSON.parse(fixed);
-                if (Array.isArray(curriculum.chapters) && curriculum.chapters.length > 0) {
-                  chapters = curriculum.chapters;
-                }
-              } catch (e2) {
-                console.error('Raw OpenAI response (malformed JSON):', responseText);
-                console.error('Error parsing chapters after repair:', e2);
-              }
+            const curriculum: Curriculum = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(curriculum.chapters) && curriculum.chapters.length > 0) {
+              chapters = curriculum.chapters;
             }
           }
         } catch (e) {
@@ -180,20 +162,6 @@ ${chunk}
       }
     }
 
-    // Increase chunk size to 6000 and parallelize requests
-    function chunkText(text: string, maxLength = 6000): string[] {
-      const chunks: string[] = [];
-      let start = 0;
-      while (start < text.length) {
-        chunks.push(text.slice(start, start + maxLength));
-        start += maxLength;
-      }
-      return chunks;
-    }
-
-    if (extractedText && extractedText.length > 6000) {
-      textChunks = chunkText(extractedText, 6000);
-    }
     const chunkPromises = textChunks.map(chunk => processChunk(chunk));
     const chunkResults = await Promise.all(chunkPromises);
     

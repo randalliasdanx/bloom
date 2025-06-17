@@ -55,6 +55,8 @@ model Module {
     textbookOrSubject String
     chapters          Chapter[]
     lessons           Lesson[] // optional flat access if needed
+    roadmap           Json?
+    lessonDetails     Json?
 }
 
 model Chapter {
@@ -93,4 +95,12 @@ model StudentProgress {
     lesson    Lesson  @relation(fields: [lessonId], references: [id])
     status    String // e.g. "not_started", "in_progress", "completed"
     score     Int? // Optional quiz score
+}
+
+model PublishedRoadmap {
+    id        String   @id @default(cuid())
+    subject   String   @unique
+    roadmap   Json
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
