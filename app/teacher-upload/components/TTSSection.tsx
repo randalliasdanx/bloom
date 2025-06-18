@@ -172,10 +172,16 @@ export default function TTSSection({ extractedText, onTextChange }: TTSSectionPr
       <div className="w-full flex flex-col items-center justify-center gap-6 text-black">
         {/* Full PDF Text */}
         <div className="w-full">
-          <h3 className="text-lg font-semibold mb-2 text-black">Full Extracted Text</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-semibold text-black">Full Extracted Text</h3>
+            <span className="text-sm text-black">{extractedText.length}/3000 characters</span>
+          </div>
           <textarea
-            value={extractedText}
-            onChange={(e) => onTextChange(e.target.value)}
+            value={extractedText.slice(0, 3000)}
+            onChange={(e) => {
+              const newText = e.target.value.slice(0, 3000);
+              onTextChange(newText);
+            }}
             className="w-full h-48 p-4 border rounded-lg focus:ring-2 focus:ring-black/20 focus:border-black/20 bg-white/50 text-black"
             placeholder="Full extracted text will appear here..."
             readOnly
