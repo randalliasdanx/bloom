@@ -2,6 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../utils/supabaseClient";
+import TTSSection from "./components/TTSSection";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export default function TeacherUploadPage() {
   const [pdfjsLib, setPdfjsLib] = useState<any>(null);
@@ -18,9 +29,10 @@ export default function TeacherUploadPage() {
 
   // Dynamically import pdfjs-dist only on client
   useEffect(() => {
-    import("pdfjs-dist/build/pdf").then((mod) => {
-      mod.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${mod.version}/pdf.worker.min.js`;
-      setPdfjsLib(mod);
+    import("pdfjs-dist/build/pdf").then((pdfjs) => {
+      // Set worker path to the ESM worker
+      pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs';
+      setPdfjsLib(pdfjs);
     });
   }, []);
 
@@ -72,17 +84,60 @@ export default function TeacherUploadPage() {
         data: new Uint8Array(arrayBuffer),
       }).promise;
 
-      let fullText = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const strings = content.items.map((item: any) => item.str).join(" ");
-        fullText += strings + "\n";
+      const CHARACTER_LIMIT = 3000;
+      let extractedText = "";
+
+      // Process pages one at a time
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        if (extractedText.length >= CHARACTER_LIMIT) break;
+
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        // Process each text item and maintain spacing
+        let lastY = null;
+        let pageText = "";
+        
+        for (const item of textContent.items) {
+          if (!('str' in item)) continue;
+          
+          // Add newline if y-position changes significantly
+          if (lastY !== null && Math.abs(lastY - item.transform[5]) > 5) {
+            pageText += "\n";
+          }
+          
+          // Add the text with proper spacing
+          pageText += item.str + " ";
+          lastY = item.transform[5];
+        }
+
+        // Clean up the text
+        pageText = pageText
+          .replace(/\s+/g, " ")          // Replace multiple spaces with single space
+          .replace(/\n\s+/g, "\n")       // Remove spaces after newlines
+          .replace(/\s+\n/g, "\n")       // Remove spaces before newlines
+          .replace(/\n{3,}/g, "\n\n")    // Replace multiple newlines with double newlines
+          .trim();
+
+        // Add page text with limit check
+        if (extractedText.length + pageText.length <= CHARACTER_LIMIT) {
+          extractedText += (extractedText ? "\n\n" : "") + pageText;
+        } else {
+          const remainingChars = CHARACTER_LIMIT - extractedText.length;
+          extractedText += (extractedText ? "\n\n" : "") + pageText.substring(0, remainingChars);
+          break;
+        }
       }
 
-      setExtractedText(fullText.trim());
+      // Final cleanup and limit enforcement
+      extractedText = extractedText
+        .substring(0, CHARACTER_LIMIT)
+        .trim()
+        .replace(/\n{3,}/g, "\n\n");     // Final cleanup of multiple newlines
+
+      setExtractedText(extractedText);
       setUseExtractedText(true);
-      setMessage("Text extracted! You can review or edit before submitting.");
+      setMessage(`Text extracted successfully! Limited to ${CHARACTER_LIMIT} characters.`);
     } catch (error) {
       console.error("PDF text extraction error:", error);
       setMessage("Failed to extract text from PDF.");
@@ -210,163 +265,158 @@ export default function TeacherUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb] py-8">
-      <div className="max-w-4xl mx-auto bg-white/90 rounded-xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold mb-8 text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
-          Teacher Curriculum Builder
-        </h1>
+    <QueryClientProvider client={queryClient}>
+      <div className="min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb] py-8">
+        <div className="max-w-4xl mx-auto bg-white/90 rounded-xl shadow-lg p-8">
+          <h1 className="text-3xl font-bold mb-8 text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
+            Teacher Curriculum Builder
+          </h1>
 
-        {/* PDF Upload Section */}
-        <div className="bg-white/80 rounded-lg p-6 mb-8 shadow-sm">
-          <h2 className="text-xl font-semibold mb-4 text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
-            Step 1: Upload Textbook
-          </h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block mb-2 font-medium text-gray-700">
-                Attach a Textbook PDF
-              </label>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={handleFileChange}
-                className="w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-full file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-green-50 file:text-green-700
-                  hover:file:bg-green-100"
-              />
-            </div>
-            {pdfFile && (
+          {/* PDF Upload Section */}
+          <div className="bg-white/80 rounded-lg p-6 mb-8 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
+              Step 1: Upload Textbook
+            </h2>
+            <div className="space-y-4">
               <div>
-                <div className="text-green-700 mb-2">Selected: {pdfFile.name}</div>
+                <label className="block mb-2 font-medium text-gray-700">
+                  Attach a Textbook PDF
+                </label>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileChange}
+                  className="w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-green-50 file:text-green-700
+                    hover:file:bg-green-100"
+                />
+              </div>
+              {pdfFile && (
+                <div>
+                  <div className="text-green-700 mb-2">Selected: {pdfFile.name}</div>
+                  <button
+                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition font-medium"
+                    onClick={() => handleExtractText(pdfFile)}
+                    disabled={loading}
+                  >
+                    Extract Text from PDF
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Text Preview Section */}
+          {useExtractedText && (
+            <TTSSection 
+              extractedText={extractedText}
+              onTextChange={setExtractedText}
+            />
+          )}
+
+          {/* Voice Selection Section */}
+          {useExtractedText && (
+            <div className="bg-white/80 rounded-lg p-6 mb-8 shadow-sm">
+              <h2 className="text-xl font-semibold mb-4 text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
+                Step 3: Select Voices for TTS Generation
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {availableVoices.map((voice) => (
+                  <div
+                    key={voice.id}
+                    className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                      selectedVoices.includes(voice.id)
+                        ? "border-green-500 bg-green-50 shadow-lg"
+                        : "border-gray-200 hover:border-green-300 hover:shadow-md"
+                    }`}
+                    onClick={() => handleVoiceToggle(voice.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-lg text-green-700">
+                          {voice.name || "Voice " + voice.id}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          Uploaded by: {voice.user_id}
+                        </div>
+                      </div>
+                      {selectedVoices.includes(voice.id) && (
+                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
                 <button
-                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition font-medium"
-                  onClick={() => handleExtractText(pdfFile)}
-                  disabled={loading}
+                  onClick={handleSubmit}
+                  className="bg-green-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-800 transition text-lg flex-1"
+                  disabled={loading || (!pdfFile && !useExtractedText) || (useExtractedText && extractedText.trim().length === 0)}
                 >
-                  Extract Text from PDF
+                  {loading ? "Processing..." : "Generate Curriculum"}
+                </button>
+
+                <button
+                  onClick={generateTTS}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-lg flex-1 flex items-center justify-center gap-2"
+                  disabled={loading || selectedVoices.length === 0}
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating Audio...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                      Generate Audio
+                    </>
+                  )}
                 </button>
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
 
-        {/* Text Preview Section */}
-        {useExtractedText && (
-          <div className="bg-white/80 rounded-lg p-6 mb-8 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4 text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
-              Step 2: Review Extracted Text
-            </h2>
-            <textarea
-              className="w-full border rounded-lg p-4 mb-4 h-48 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              value={extractedText}
-              onChange={(e) => setExtractedText(e.target.value)}
-              placeholder="Extracted text will appear here..."
-            />
-          </div>
-        )}
-
-        {/* Voice Selection Section */}
-        {useExtractedText && (
-          <div className="bg-white/80 rounded-lg p-6 mb-8 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4 text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
-              Step 3: Select Voices for TTS Generation
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {availableVoices.map((voice) => (
+          {/* Progress Bar */}
+          {ttsProgress > 0 && (
+            <div className="bg-white/80 rounded-lg p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
+                  Generating Audio
+                </h3>
+                <span className="text-sm text-gray-600">{Math.round(ttsProgress)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
                 <div
-                  key={voice.id}
-                  className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
-                    selectedVoices.includes(voice.id)
-                      ? "border-green-500 bg-green-50 shadow-lg"
-                      : "border-gray-200 hover:border-green-300 hover:shadow-md"
-                  }`}
-                  onClick={() => handleVoiceToggle(voice.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-lg text-green-700">
-                        {voice.name || "Voice " + voice.id}
-                      </div>
-                      <div className="text-sm text-gray-500 mt-1">
-                        Uploaded by: {voice.user_id}
-                      </div>
-                    </div>
-                    {selectedVoices.includes(voice.id) && (
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  className="bg-green-600 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${ttsProgress}%` }}
+                ></div>
+              </div>
             </div>
+          )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <button
-                onClick={handleSubmit}
-                className="bg-green-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-800 transition text-lg flex-1"
-                disabled={loading || (!pdfFile && !useExtractedText) || (useExtractedText && extractedText.trim().length === 0)}
-              >
-                {loading ? "Processing..." : "Generate Curriculum"}
-              </button>
-
-              <button
-                onClick={generateTTS}
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-lg flex-1 flex items-center justify-center gap-2"
-                disabled={loading || selectedVoices.length === 0}
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Generating Audio...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                    Generate Audio
-                  </>
-                )}
-              </button>
+          {/* Status Message */}
+          {message && (
+            <div className={`mt-4 p-4 rounded-lg ${message.includes("failed") || message.includes("error") ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+              {message}
             </div>
-          </div>
-        )}
-
-        {/* Progress Bar */}
-        {ttsProgress > 0 && (
-          <div className="bg-white/80 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold text-green-700" style={{ fontFamily: 'var(--font-arvo)' }}>
-                Generating Audio
-              </h3>
-              <span className="text-sm text-gray-600">{Math.round(ttsProgress)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className="bg-green-600 h-3 rounded-full transition-all duration-300"
-                style={{ width: `${ttsProgress}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
-        {/* Status Message */}
-        {message && (
-          <div className={`mt-4 p-4 rounded-lg ${message.includes("failed") || message.includes("error") ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
-            {message}
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </QueryClientProvider>
   );
 }
