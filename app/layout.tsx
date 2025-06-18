@@ -3,20 +3,13 @@ import type { Metadata } from "next";
 import { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Roboto } from "next/font/google";
+
+const roboto = Roboto({
+  weight: ["400", "500", "700"],
+  subsets: ["latin"],
+  display: "swap",
 import { Arvo, Cormorant } from 'next/font/google';
-
-const arvo = Arvo({
-  weight: ['400', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-arvo',
-});
-
-const cormorant = Cormorant({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-cormorant',
-});
 
 export const metadata: Metadata = {
   title: "bloom",

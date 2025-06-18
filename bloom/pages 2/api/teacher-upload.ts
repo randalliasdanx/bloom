@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 You are an expert university-level curriculum designer. Given the following section from a university textbook, generate a thorough and detailed curriculum in JSON format. The curriculum should be suitable for university students and include:
 
 - An array of "chapters", each with:
-  - "title": The chapter title MUST be in the format "Chapter X: [Chapter Name]" where X is a number (e.g., "Chapter 1: Introduction to ...")
+  - "title": The chapter title should be descriptive and meaningful (e.g., "Introduction to Quantum Physics" or "Advanced Calculus Methods")
   - "content": A detailed summary or main content for the chapter
   - "lessons": An array of lessons, each with:
     - "title": The lesson title
@@ -99,14 +99,10 @@ You are an expert university-level curriculum designer. Given the following sect
     - "answer": The correct answer
 
 IMPORTANT: 
-1. Chapter titles MUST follow the format "Chapter X: [Chapter Name]" where X is a number
-2. Chapters MUST be numbered sequentially starting from 1
-3. Do not skip numbers in chapter sequence
-4. If the content suggests multiple chapters, number them 1, 2, 3, etc.
-5. Each chapter MUST have a unique title and content
-6. Do not duplicate chapter numbers or titles
-
-If the content is not enough for a full chapter, extract as much as you can (lessons, summaries, or quiz questions). The curriculum should be as comprehensive, clear, and educational as possible for any university-level subject (math, science, humanities, engineering, etc.).
+1. Chapter titles should be descriptive and meaningful
+2. Each chapter should have a unique title and content
+3. Do not include chapter numbers in the titles
+4. The curriculum should be as comprehensive, clear, and educational as possible for any university-level subject (math, science, humanities, engineering, etc.)
 
 Respond ONLY with valid JSON. Do not include any explanation or commentary.
 
@@ -114,11 +110,11 @@ Example:
 {
   "chapters": [
     {
-      "title": "Chapter 1: [Chapter Name]",
+      "title": "Introduction to Quantum Physics",
       "content": "[Chapter summary or main content]",
       "lessons": [
         {
-          "title": "Lesson 1: [Lesson Name]",
+          "title": "Wave-Particle Duality",
           "content": "[Lesson content]"
         }
       ],
@@ -176,37 +172,14 @@ ${chunk}
       .filter((chapter, index, self) =>
         index === self.findIndex((c) => 
           c.content === chapter.content || 
-          c.title.replace(/^Chapter\s+\d+:\s*/i, '').trim() === 
-          chapter.title.replace(/^Chapter\s+\d+:\s*/i, '').trim()
+          c.title === chapter.title
         )
       );
 
-    // Sort chapters by their original number if present, otherwise by content length
-    uniqueChapters.sort((a, b) => {
-      const numA = parseInt(a.title.match(/Chapter\s+(\d+)/i)?.[1] || '0');
-      const numB = parseInt(b.title.match(/Chapter\s+(\d+)/i)?.[1] || '0');
-      if (numA && numB) return numA - numB;
-      return b.content.length - a.content.length;
-    });
+    // Sort chapters by content length
+    uniqueChapters.sort((a, b) => b.content.length - a.content.length);
 
-    // Ensure final chapter ordering with correct sequential numbers
-    const finalChapters = uniqueChapters.map((chapter, index) => {
-      const chapterNumber = index + 1;
-      // Extract the title without the chapter number
-      const titleWithoutNumber = chapter.title
-        .replace(/^Chapter\s+\d+:\s*/i, '')
-        .trim();
-      
-      // Create new chapter object with correct number
-      return {
-        ...chapter,
-        title: `Chapter ${chapterNumber}: ${titleWithoutNumber}`
-      };
-    });
-
-    console.log('Final chapters:', finalChapters.map(c => c.title));
-
-    if (finalChapters.length === 0) {
+    if (uniqueChapters.length === 0) {
       return res.status(500).json({ error: "No curriculum chapters generated from OpenAI" });
     }
 
@@ -224,20 +197,14 @@ ${chunk}
 
     const module = await prisma.module.create({
       data: {
-<<<<<<< HEAD
         title: uniqueChapters[0]?.title || "Untitled Module",
         teacherId: teacher.id,
         curriculum: { chapters: uniqueChapters },
-=======
-        title: finalChapters[0]?.title || "Untitled Module",
-        teacherId: teacher.id,
-        curriculum: { chapters: finalChapters },
->>>>>>> main
         textbookOrSubject: textbookOrSubject || "Untitled Textbook/Subject",
       },
     });
 
-    res.status(200).json({ success: true, module, curriculum: { chapters: finalChapters } });
+    res.status(200).json({ success: true, module, curriculum: { chapters: uniqueChapters } });
   } catch (error: any) {
     console.error("Teacher upload error:", error);
     res.status(500).json({ error: error.message || "Unexpected error" });

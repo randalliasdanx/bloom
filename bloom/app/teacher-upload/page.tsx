@@ -491,7 +491,13 @@ export default function TeacherUploadPage() {
                   >
                     <button
                       className={`w-full text-left px-2 py-1 rounded mb-1 ${
+<<<<<<< HEAD
+                        selectedId === mod.id && currentChapterIndex === 0
+                          ? "bg-green-400 font-bold"
+                          : selectedId === mod.id
+=======
                         selectedId === mod.id
+>>>>>>> main
                           ? "bg-green-200 font-bold"
                           : "hover:bg-green-100"
                       }`}
@@ -632,7 +638,11 @@ export default function TeacherUploadPage() {
               (useExtractedText && extractedText.trim().length === 0) ||
               !textbookOrSubject.trim()
             }
+<<<<<<< HEAD
+            className="bg-green-700 text-black px-6 py-2 rounded font-semibold hover:bg-green-800 transition mr-2 tracking-wide text-lg"
+=======
             className="bg-green-700 text-black px-6 py-2 rounded font-semibold hover:bg-green-800 transition mr-2"
+>>>>>>> main
           >
             {loading ? "Processing..." : "Generate Curriculum"}
           </button>
