@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 You are an expert university-level curriculum designer. Given the following section from a university textbook, generate a thorough and detailed curriculum in JSON format. The curriculum should be suitable for university students and include:
 
 - An array of "chapters", each with:
-  - "title": The chapter title should be descriptive and meaningful (e.g., "Introduction to Quantum Physics" or "Advanced Calculus Methods")
+  - "title": The chapter title MUST be in the format "Chapter X: [Chapter Name]" where X is a number (e.g., "Chapter 1: Introduction to ...")
   - "content": A detailed summary or main content for the chapter
   - "lessons": An array of lessons, each with:
     - "title": The lesson title
@@ -99,10 +99,14 @@ You are an expert university-level curriculum designer. Given the following sect
     - "answer": The correct answer
 
 IMPORTANT: 
-1. Chapter titles should be descriptive and meaningful
-2. Each chapter should have a unique title and content
-3. Do not include chapter numbers in the titles
-4. The curriculum should be as comprehensive, clear, and educational as possible for any university-level subject (math, science, humanities, engineering, etc.)
+1. Chapter titles MUST follow the format "Chapter X: [Chapter Name]" where X is a number
+2. Chapters MUST be numbered sequentially starting from 1
+3. Do not skip numbers in chapter sequence
+4. If the content suggests multiple chapters, number them 1, 2, 3, etc.
+5. Each chapter MUST have a unique title and content
+6. Do not duplicate chapter numbers or titles
+
+If the content is not enough for a full chapter, extract as much as you can (lessons, summaries, or quiz questions). The curriculum should be as comprehensive, clear, and educational as possible for any university-level subject (math, science, humanities, engineering, etc.).
 
 Respond ONLY with valid JSON. Do not include any explanation or commentary.
 
@@ -110,11 +114,11 @@ Example:
 {
   "chapters": [
     {
-      "title": "Introduction to Quantum Physics",
+      "title": "Chapter 1: [Chapter Name]",
       "content": "[Chapter summary or main content]",
       "lessons": [
         {
-          "title": "Wave-Particle Duality",
+          "title": "Lesson 1: [Lesson Name]",
           "content": "[Lesson content]"
         }
       ],
@@ -134,7 +138,7 @@ ${chunk}
 `;
       try {
         const completion = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4",
           messages: [{ role: "user", content: prompt }],
           temperature: 0.2,
           max_tokens: 1500,
@@ -146,27 +150,9 @@ ${chunk}
         try {
           const jsonMatch = responseText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
-            try {
-              const curriculum: Curriculum = JSON.parse(jsonMatch[0]);
-              if (Array.isArray(curriculum.chapters) && curriculum.chapters.length > 0) {
-                chapters = curriculum.chapters;
-              }
-            } catch (e) {
-              // Try to repair common JSON issues
-              let fixed = jsonMatch[0]
-                .replace(/,\s*}/g, '}') // remove trailing commas before }
-                .replace(/,\s*]/g, ']'); // remove trailing commas before ]
-              // Ensure closing bracket
-              if (fixed[fixed.length - 1] !== '}') fixed += '}';
-              try {
-                const curriculum: Curriculum = JSON.parse(fixed);
-                if (Array.isArray(curriculum.chapters) && curriculum.chapters.length > 0) {
-                  chapters = curriculum.chapters;
-                }
-              } catch (e2) {
-                console.error('Raw OpenAI response (malformed JSON):', responseText);
-                console.error('Error parsing chapters after repair:', e2);
-              }
+            const curriculum: Curriculum = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(curriculum.chapters) && curriculum.chapters.length > 0) {
+              chapters = curriculum.chapters;
             }
           }
         } catch (e) {
@@ -180,20 +166,6 @@ ${chunk}
       }
     }
 
-    // Increase chunk size to 6000 and parallelize requests
-    function chunkText(text: string, maxLength = 6000): string[] {
-      const chunks: string[] = [];
-      let start = 0;
-      while (start < text.length) {
-        chunks.push(text.slice(start, start + maxLength));
-        start += maxLength;
-      }
-      return chunks;
-    }
-
-    if (extractedText && extractedText.length > 6000) {
-      textChunks = chunkText(extractedText, 6000);
-    }
     const chunkPromises = textChunks.map(chunk => processChunk(chunk));
     const chunkResults = await Promise.all(chunkPromises);
     
@@ -204,14 +176,37 @@ ${chunk}
       .filter((chapter, index, self) =>
         index === self.findIndex((c) => 
           c.content === chapter.content || 
-          c.title === chapter.title
+          c.title.replace(/^Chapter\s+\d+:\s*/i, '').trim() === 
+          chapter.title.replace(/^Chapter\s+\d+:\s*/i, '').trim()
         )
       );
 
-    // Sort chapters by content length
-    uniqueChapters.sort((a, b) => b.content.length - a.content.length);
+    // Sort chapters by their original number if present, otherwise by content length
+    uniqueChapters.sort((a, b) => {
+      const numA = parseInt(a.title.match(/Chapter\s+(\d+)/i)?.[1] || '0');
+      const numB = parseInt(b.title.match(/Chapter\s+(\d+)/i)?.[1] || '0');
+      if (numA && numB) return numA - numB;
+      return b.content.length - a.content.length;
+    });
 
-    if (uniqueChapters.length === 0) {
+    // Ensure final chapter ordering with correct sequential numbers
+    const finalChapters = uniqueChapters.map((chapter, index) => {
+      const chapterNumber = index + 1;
+      // Extract the title without the chapter number
+      const titleWithoutNumber = chapter.title
+        .replace(/^Chapter\s+\d+:\s*/i, '')
+        .trim();
+      
+      // Create new chapter object with correct number
+      return {
+        ...chapter,
+        title: `Chapter ${chapterNumber}: ${titleWithoutNumber}`
+      };
+    });
+
+    console.log('Final chapters:', finalChapters.map(c => c.title));
+
+    if (finalChapters.length === 0) {
       return res.status(500).json({ error: "No curriculum chapters generated from OpenAI" });
     }
 
@@ -229,14 +224,20 @@ ${chunk}
 
     const module = await prisma.module.create({
       data: {
+<<<<<<< HEAD
         title: uniqueChapters[0]?.title || "Untitled Module",
         teacherId: teacher.id,
         curriculum: { chapters: uniqueChapters },
+=======
+        title: finalChapters[0]?.title || "Untitled Module",
+        teacherId: teacher.id,
+        curriculum: { chapters: finalChapters },
+>>>>>>> main
         textbookOrSubject: textbookOrSubject || "Untitled Textbook/Subject",
       },
     });
 
-    res.status(200).json({ success: true, module, curriculum: { chapters: uniqueChapters } });
+    res.status(200).json({ success: true, module, curriculum: { chapters: finalChapters } });
   } catch (error: any) {
     console.error("Teacher upload error:", error);
     res.status(500).json({ error: error.message || "Unexpected error" });

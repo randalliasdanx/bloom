@@ -9,7 +9,7 @@ const roboto = Roboto({
   weight: ["400", "500", "700"],
   subsets: ["latin"],
   display: "swap",
-});
+import { Arvo, Cormorant } from 'next/font/google';
 
 export const metadata: Metadata = {
   title: "bloom",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${arvo.variable} ${cormorant.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -39,9 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }
         `}</style>
       </head>
-      <body
-        className={`${roboto.className} min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]`}
-      >
+      <body className={`${cormorant.className} min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]`}>
         <header className="w-full flex items-center h-20 px-8 py-2 bg-fuchsia-50/95 backdrop-blur-md shadow-sm">
           <Link href="/" className="flex items-center">
             <Image
