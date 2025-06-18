@@ -170,8 +170,8 @@ export default function InteractiveRoadmap({ roadmap }: { roadmap: Roadmap }) {
   return (
     <div
       ref={flowWrapper}
-      className="relative"
-      style={{ width: "100%", height: "85vh" }}
+      className="relative border border-gray-200 rounded-lg overflow-hidden"
+      style={{ width: "100%", height: "500px" }}
     >
       <button
         onClick={addNode}

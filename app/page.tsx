@@ -6,8 +6,8 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-green-100">
       <header className="mb-12 text-center">
         <h1
-          className="text-6xl font-extrabold font-serif text-green-700 mb-2 tracking-tight"
-          style={{ fontFamily: "Playfair Display, serif" }}
+          className="text-6xl font-extrabold text-green-700 mb-2 tracking-tight"
+          style={{ fontFamily: 'var(--font-arvo)' }}
         >
           bloom
         </h1>

@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import RoadmapView from "../../components/RoadmapView";
+import { useRouter } from "next/navigation";
 
 const mockModules = [
   {
@@ -26,6 +27,14 @@ const mockModules = [
         },
       ],
     },
+    upcomingChapters: [
+      {
+        id: "dp",
+        title: "Dynamic Programming",
+        status: "upcoming",
+        description: "Learn advanced problem-solving techniques with dynamic programming",
+      }
+    ]
   },
   {
     id: "linear-algebra",
@@ -63,6 +72,14 @@ const mockModules = [
         },
       ],
     },
+    upcomingChapters: [
+      {
+        id: "eigenvalues",
+        title: "Eigenvalues & Eigenvectors",
+        status: "upcoming",
+        description: "Master the concepts of eigenvalues and eigenvectors",
+      }
+    ]
   },
   {
     id: "calculus",
@@ -104,11 +121,24 @@ const mockModules = [
         },
       ],
     },
+    upcomingChapters: [
+      {
+        id: "integration",
+        title: "Integration",
+        status: "upcoming",
+        description: "Learn the fundamental theorem of calculus and integration techniques",
+      }
+    ]
   },
 ];
 
 export default function DashboardPage() {
   const [selectedModule, setSelectedModule] = useState(mockModules[0]);
+  const router = useRouter();
+
+  const handleUpcomingChapterClick = (chapterId: string) => {
+    router.push(`/chapter/${chapterId}/upcoming`);
+  };
 
   return (
     <div className="flex min-h-screen">
@@ -142,11 +172,48 @@ export default function DashboardPage() {
         </div>
       </aside>
       {/* Main Content */}
-      <main className="flex-1 p-8 bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]">
-        <h1 className="text-3xl font-bold mb-6 text-black">
-          {selectedModule.title} Roadmap
-        </h1>
-        <RoadmapView roadmap={selectedModule.roadmap} />
+      <main className="flex-1 p-8 bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb] overflow-y-auto">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <h1 className="text-3xl font-bold text-black">
+            {selectedModule.title} Roadmap
+          </h1>
+          
+          <div className="bg-white/50 rounded-lg p-6">
+            <RoadmapView roadmap={selectedModule.roadmap} />
+          </div>
+          
+          {/* Upcoming Chapters Section */}
+          {selectedModule.upcomingChapters && selectedModule.upcomingChapters.length > 0 && (
+            <div className="bg-white/50 rounded-lg p-6">
+              <h2 className="text-3xl font-bold mb-6 text-black" style={{ fontFamily: 'var(--font-arvo)' }}>
+                Upcoming Chapters
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {selectedModule.upcomingChapters.map((chapter) => (
+                  <div
+                    key={chapter.id}
+                    className="bg-white/90 rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 border-2 border-transparent hover:border-green-300"
+                    onClick={() => handleUpcomingChapterClick(chapter.id)}
+                  >
+                    <h3 className="text-2xl font-semibold text-green-700 mb-3" style={{ fontFamily: 'var(--font-arvo)' }}>
+                      {chapter.title}
+                    </h3>
+                    <p className="text-gray-600 mb-6 text-lg">{chapter.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-sm text-green-600">
+                        <span className="mr-2 text-xl">🔜</span>
+                        <span>Coming Soon</span>
+                      </div>
+                      <button className="bg-green-100 text-green-700 px-4 py-2 rounded-lg hover:bg-green-200 transition-colors">
+                        Upload Voice
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

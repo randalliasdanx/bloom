@@ -3,6 +3,20 @@ import type { Metadata } from "next";
 import { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Arvo, Cormorant } from 'next/font/google';
+
+const arvo = Arvo({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-arvo',
+});
+
+const cormorant = Cormorant({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-cormorant',
+});
 
 export const metadata: Metadata = {
   title: "bloom",
@@ -11,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${arvo.variable} ${cormorant.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -32,7 +46,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }
         `}</style>
       </head>
-      <body className="min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]">
+      <body className={`${cormorant.className} min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]`}>
         <header className="w-full flex items-center h-20 px-8 py-2 bg-fuchsia-50/95 backdrop-blur-md shadow-sm">
           <Link href="/" className="flex items-center">
             <Image
