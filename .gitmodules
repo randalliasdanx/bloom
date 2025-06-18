@@ -1,0 +1,3 @@
+[submodule "chatterbox-tts-api"]
+	path = chatterbox-tts-api
+	url = https://github.com/travisvn/chatterbox-tts-api.git
