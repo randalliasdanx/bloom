@@ -38,9 +38,11 @@ export default function TTSSection({ extractedText, onTextChange }: TTSSectionPr
   // Text input management with persistence
   const { text, updateText, clearText, hasText } = useTextInput();
 
-  // Initialize text with extractedText
+  // Initialize text with first 100 characters of extractedText
   React.useEffect(() => {
-    updateText(extractedText);
+    if (extractedText && !text) {
+      updateText(extractedText.slice(0, 100));
+    }
   }, [extractedText]);
 
   // Keep parent's text in sync
@@ -167,8 +169,51 @@ export default function TTSSection({ extractedText, onTextChange }: TTSSectionPr
         Step 2: Review and Generate Audio
       </h2>
 
-      <div className="w-full flex flex-col items-center justify-center gap-4">
-        <div className="flex flex-col items-center justify-center gap-2 w-full">
+      <div className="w-full flex flex-col items-center justify-center gap-6 text-black">
+        {/* Full PDF Text */}
+        <div className="w-full">
+          <h3 className="text-lg font-semibold mb-2 text-black">Full Extracted Text</h3>
+          <textarea
+            value={extractedText}
+            onChange={(e) => onTextChange(e.target.value)}
+            className="w-full h-48 p-4 border rounded-lg focus:ring-2 focus:ring-black/20 focus:border-black/20 bg-white/50 text-black"
+            placeholder="Full extracted text will appear here..."
+            readOnly
+          />
+        </div>
+
+        {/* Summary for Audio Generation */}
+        <div className="w-full">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-semibold text-black">Summary for Audio Generation</h3>
+            <span className="text-sm text-black">{text.length}/100 characters</span>
+          </div>
+          <textarea
+            value={text}
+            onChange={(e) => {
+              const newText = e.target.value.slice(0, 100);
+              updateText(newText);
+            }}
+            className="w-full h-24 p-4 border rounded-lg focus:ring-2 focus:ring-black/20 focus:border-black/20 bg-white/50 text-black"
+            placeholder="Enter or edit text for audio generation (max 100 characters)..."
+          />
+          <div className="flex justify-end mt-2 gap-2">
+            <button
+              onClick={() => updateText(extractedText.slice(0, 100))}
+              className="px-3 py-1 text-sm bg-black/10 hover:bg-black/20 text-black rounded-lg transition-colors duration-300"
+            >
+              Copy from Full Text
+            </button>
+            <button
+              onClick={() => updateText("")}
+              className="px-3 py-1 text-sm bg-black/10 hover:bg-black/20 text-black rounded-lg transition-colors duration-300"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <div className="w-full flex flex-col items-center justify-center gap-4">
           <button
             onClick={() => setShowStatistics(!showStatistics)}
             className="px-3 py-1 text-xs bg-black/10 hover:bg-black/20 text-black rounded-full transition-colors duration-300"
@@ -183,100 +228,100 @@ export default function TTSSection({ extractedText, onTextChange }: TTSSectionPr
               hasError={statusHasError}
             />
           )}
-        </div>
 
-        <div className="max-w-2xl mx-auto gap-4 flex flex-col w-full text-black">
-          {/* API Endpoint Selector */}
-          <div className="">
-            <ApiEndpointSelector
-              apiBaseUrl={apiBaseUrl}
-              onUrlChange={updateApiBaseUrl}
-            />
-          </div>
-
-          {/* Text Input */}
-          <TextInput
-            value={text}
-            onChange={updateText}
-            onClear={clearText}
-            hasText={hasText}
-          />
-
-          {/* Voice Library */}
-          <VoiceLibrary
-            voices={voices}
-            selectedVoice={selectedVoice}
-            onVoiceSelect={setSelectedVoice}
-            onAddVoice={addVoice}
-            onDeleteVoice={deleteVoice}
-            onRenameVoice={renameVoice}
-            isLoading={voicesLoading}
-          />
-
-          {/* Advanced Settings */}
-          <AdvancedSettings
-            showAdvanced={showAdvanced}
-            onToggle={() => setShowAdvanced(!showAdvanced)}
-            exaggeration={exaggeration}
-            onExaggerationChange={updateExaggeration}
-            cfgWeight={cfgWeight}
-            onCfgWeightChange={updateCfgWeight}
-            temperature={temperature}
-            onTemperatureChange={updateTemperature}
-            onResetToDefaults={resetToDefaults}
-            isDefault={isDefault}
-          />
-
-          {/* Current Voice Indicator */}
-          {selectedVoice && (
-            <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-primary">
-                <Volume2 className="w-4 h-4" />
-                <span>Using voice: <strong>{selectedVoice.name}</strong></span>
-              </div>
+          <div className="max-w-2xl mx-auto gap-4 flex flex-col w-full text-black">
+            {/* API Endpoint Selector */}
+            <div className="text-black">
+              <ApiEndpointSelector
+                apiBaseUrl={apiBaseUrl}
+                onUrlChange={updateApiBaseUrl}
+              />
             </div>
-          )}
 
-          {/* Generate Button */}
-          <Button
-            onClick={handleGenerate}
-            disabled={!text.trim() || !selectedVoice || generateMutation.isPending}
-            className="w-full py-6 text-lg font-semibold"
-          >
-            {generateMutation.isPending ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                <span>Generating...</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                <Volume2 className="w-5 h-5" />
-                <span>Generate Speech</span>
+            {/* Voice Library */}
+            <div className="text-black">
+              <VoiceLibrary
+                voices={voices}
+                selectedVoice={selectedVoice}
+                onVoiceSelect={setSelectedVoice}
+                onAddVoice={addVoice}
+                onDeleteVoice={deleteVoice}
+                onRenameVoice={renameVoice}
+                isLoading={voicesLoading}
+              />
+            </div>
+
+            {/* Advanced Settings */}
+            <div className="text-black">
+              <AdvancedSettings
+                showAdvanced={showAdvanced}
+                onToggle={() => setShowAdvanced(!showAdvanced)}
+                exaggeration={exaggeration}
+                onExaggerationChange={updateExaggeration}
+                cfgWeight={cfgWeight}
+                onCfgWeightChange={updateCfgWeight}
+                temperature={temperature}
+                onTemperatureChange={updateTemperature}
+                onResetToDefaults={resetToDefaults}
+                isDefault={isDefault}
+              />
+            </div>
+
+            {/* Current Voice Indicator */}
+            {selectedVoice && (
+              <div className="p-3 bg-black/10 border border-black/20 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-black">
+                  <Volume2 className="w-4 h-4" />
+                  <span>Using voice: <strong>{selectedVoice.name}</strong></span>
+                </div>
               </div>
             )}
-          </Button>
 
-          {/* Audio Player */}
-          {audioUrl && (
-            <AudioPlayer
-              audioUrl={audioUrl}
-            />
-          )}
+            {/* Generate Button */}
+            <Button
+              onClick={handleGenerate}
+              disabled={!text.trim() || !selectedVoice || generateMutation.isPending}
+              className="w-full py-6 text-lg font-semibold bg-black text-white hover:bg-black/90"
+            >
+              {generateMutation.isPending ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  <span>Generating...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Volume2 className="w-5 h-5" />
+                  <span>Generate Speech</span>
+                </div>
+              )}
+            </Button>
 
-          {/* Audio History */}
-          <AudioHistory
-            audioHistory={audioHistory}
-            onDeleteAudioRecord={deleteAudioRecord}
-            onRenameAudioRecord={renameAudioRecord}
-            onClearHistory={clearHistory}
-            onRestoreSettings={(settings) => {
-              updateExaggeration(settings.exaggeration);
-              updateCfgWeight(settings.cfgWeight);
-              updateTemperature(settings.temperature);
-            }}
-            onRestoreText={updateText}
-            isLoading={historyLoading}
-          />
+            {/* Audio Player */}
+            <div className="text-black">
+              {audioUrl && (
+                <AudioPlayer
+                  audioUrl={audioUrl}
+                />
+              )}
+            </div>
+
+            {/* Audio History */}
+            <div className="text-black">
+              <AudioHistory
+                audioHistory={audioHistory}
+                onDeleteAudioRecord={deleteAudioRecord}
+                onRenameAudioRecord={renameAudioRecord}
+                onClearHistory={clearHistory}
+                onRestoreSettings={(settings) => {
+                  updateExaggeration(settings.exaggeration);
+                  updateCfgWeight(settings.cfgWeight);
+                  updateTemperature(settings.temperature);
+                }}
+                onRestoreText={updateText}
+                isLoading={historyLoading}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

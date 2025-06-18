@@ -84,38 +84,60 @@ export default function TeacherUploadPage() {
         data: new Uint8Array(arrayBuffer),
       }).promise;
 
-      let fullText = "";
       const CHARACTER_LIMIT = 3000;
+      let extractedText = "";
 
-      // Only process pages until we reach the character limit
-      for (let i = 1; i <= pdf.numPages; i++) {
-        if (fullText.length >= CHARACTER_LIMIT) {
-          break;
+      // Process pages one at a time
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        if (extractedText.length >= CHARACTER_LIMIT) break;
+
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        
+        // Process each text item and maintain spacing
+        let lastY = null;
+        let pageText = "";
+        
+        for (const item of textContent.items) {
+          if (!('str' in item)) continue;
+          
+          // Add newline if y-position changes significantly
+          if (lastY !== null && Math.abs(lastY - item.transform[5]) > 5) {
+            pageText += "\n";
+          }
+          
+          // Add the text with proper spacing
+          pageText += item.str + " ";
+          lastY = item.transform[5];
         }
 
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items.map((item: any) => item.str).join(" ");
-        
-        // Calculate remaining characters
-        const remainingChars = CHARACTER_LIMIT - fullText.length;
-        
-        if (fullText.length + pageText.length <= CHARACTER_LIMIT) {
-          // If adding entire page text doesn't exceed limit, add it all
-          fullText += pageText + "\n";
+        // Clean up the text
+        pageText = pageText
+          .replace(/\s+/g, " ")          // Replace multiple spaces with single space
+          .replace(/\n\s+/g, "\n")       // Remove spaces after newlines
+          .replace(/\s+\n/g, "\n")       // Remove spaces before newlines
+          .replace(/\n{3,}/g, "\n\n")    // Replace multiple newlines with double newlines
+          .trim();
+
+        // Add page text with limit check
+        if (extractedText.length + pageText.length <= CHARACTER_LIMIT) {
+          extractedText += (extractedText ? "\n\n" : "") + pageText;
         } else {
-          // If adding page would exceed limit, only add up to the limit
-          fullText += pageText.substring(0, remainingChars);
+          const remainingChars = CHARACTER_LIMIT - extractedText.length;
+          extractedText += (extractedText ? "\n\n" : "") + pageText.substring(0, remainingChars);
           break;
         }
       }
 
-      // Ensure we don't exceed the limit (just in case)
-      fullText = fullText.substring(0, CHARACTER_LIMIT);
+      // Final cleanup and limit enforcement
+      extractedText = extractedText
+        .substring(0, CHARACTER_LIMIT)
+        .trim()
+        .replace(/\n{3,}/g, "\n\n");     // Final cleanup of multiple newlines
 
-      setExtractedText(fullText.trim());
+      setExtractedText(extractedText);
       setUseExtractedText(true);
-      setMessage(`Text extracted! Limited to ${CHARACTER_LIMIT} characters. You can review or edit before submitting.`);
+      setMessage(`Text extracted successfully! Limited to ${CHARACTER_LIMIT} characters.`);
     } catch (error) {
       console.error("PDF text extraction error:", error);
       setMessage("Failed to extract text from PDF.");
