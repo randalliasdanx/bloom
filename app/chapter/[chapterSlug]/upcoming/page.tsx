@@ -83,7 +83,7 @@ export default function UpcomingChapterPage({ params }: { params: { chapterSlug:
       <div className="max-w-3xl mx-auto p-8">
         <div className="flex items-center mb-8">
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.back()}
             className="mr-4 px-3 py-1 bg-green-800 hover:bg-green-900 text-white font-semibold rounded shadow transition"
           >
             <span className="text-2xl">&#8592;</span>

@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 export default function LessonPage() {
   const router = useRouter();
-  // In a real app, you would get the chapterSlug from params or context
-  const chapterSlug = "vectors"; // Placeholder for demo
-  const { lessonTitle } = (router as any).query || {};
+  const params = useParams();
+  const lessonTitle = params?.lessonTitle as string;
 
   // Mock mastery points and icons
   const masteryPoints = 3200;
@@ -19,14 +19,14 @@ export default function LessonPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#e6e6fa] to-[#b7eacb]">
       <div className="max-w-3xl mx-auto p-8 relative">
         <button
-          onClick={() => router.push("/chapter")}
+          onClick={() => router.back()}
           className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 bg-green-800 hover:bg-green-900 text-white font-semibold rounded shadow transition"
         >
           <span className="text-2xl">&#8592;</span>
-          <span className="text-lg">Back to Chapters</span>
+          <span className="text-lg">Back</span>
         </button>
         <h1 className="text-3xl font-bold mb-4 text-green-700 capitalize mt-16">
-          {lessonTitle || "Lesson Title"}
+          {lessonTitle?.replace(/-/g, " ") || "Lesson Title"}
         </h1>
         <div className="text-gray-600 mb-4">
           {masteryPoints.toLocaleString()} possible mastery points{" "}
